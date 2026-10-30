@@ -1,5 +1,3 @@
-
-
 import struct
 import zlib
 
@@ -50,7 +48,49 @@ VALID_STATUSES = {SUCCESS, NOT_FOUND, ERROR}
 
 
 # ==========================================
-# 4. Payload validation
+# 4. Header validation
+# ==========================================
+
+def validate_header_fields(message_type, task_id, worker_id, attempt_num):
+    """
+    Validate header fields according to the message type.
+
+    Task ID 0: message is not associated with a task.
+    Worker ID 0: worker has not been assigned an ID.
+    Attempt number starts at 1 for task-related messages.
+    """
+
+    if message_type not in VALID_MESSAGE_TYPES:
+        raise ValueError("Unknown message type")
+
+    if message_type == WORKER_JOIN:
+        if task_id != 0 or worker_id != 0 or attempt_num != 0:
+            raise ValueError(
+                "WORKER_JOIN requires Task_ID=0, Worker_ID=0, Attempt_Num=0"
+            )
+
+    elif message_type == HEARTBEAT:
+        if task_id != 0 or worker_id == 0 or attempt_num != 0:
+            raise ValueError(
+                "HEARTBEAT requires Task_ID=0, Worker_ID>0, Attempt_Num=0"
+            )
+
+    elif message_type in (TASK_DISPATCH, TASK_RESULT, ACK_RESULT):
+        if task_id == 0 or worker_id == 0 or attempt_num < 1:
+            raise ValueError(
+                f"Message type {message_type} requires "
+                "Task_ID>0, Worker_ID>0, Attempt_Num>=1"
+            )
+
+    elif message_type == WORKER_ACCEPT:
+        if task_id != 0 or worker_id == 0 or attempt_num != 0:
+            raise ValueError(
+                "WORKER_ACCEPT requires Task_ID=0, Worker_ID>0, Attempt_Num=0"
+            )
+
+
+# ==========================================
+# 5. Payload validation
 # ==========================================
 
 def validate_payload(message_type, payload):
@@ -78,7 +118,7 @@ def validate_payload(message_type, payload):
 
 
 # ==========================================
-# 5. Encode a complete RJDAP packet
+# 6. Encode a complete RJDAP packet
 # ==========================================
 
 def encode_message(
@@ -96,6 +136,10 @@ def encode_message(
     if not isinstance(payload, bytes):
         raise TypeError("Payload must be bytes")
 
+    validate_header_fields(
+        message_type, task_id, worker_id, attempt_num
+    )
+
     validate_payload(message_type, payload)
 
     if len(payload) > MAX_PAYLOAD_SIZE:
@@ -103,7 +147,7 @@ def encode_message(
 
     payload_length = len(payload)
 
-    # Calculate CRC32 over the payload only.
+    # CRC32 is calculated over the payload only.
     checksum = zlib.crc32(payload) & 0xFFFFFFFF
 
     header = struct.pack(
@@ -126,7 +170,7 @@ def encode_message(
 
 
 # ==========================================
-# 6. Decode and validate a complete packet
+# 7. Decode and validate a complete packet
 # ==========================================
 
 def decode_message(packet):
@@ -160,6 +204,11 @@ def decode_message(packet):
     if message_type not in VALID_MESSAGE_TYPES:
         raise ValueError("Unknown message type")
 
+    # Validate the header fields for this message type.
+    validate_header_fields(
+        message_type, task_id, worker_id, attempt_num
+    )
+
     if payload_length != len(payload):
         raise ValueError("Payload length does not match header")
 
@@ -182,7 +231,7 @@ def decode_message(packet):
 
 
 # ==========================================
-# 7. TASK_DISPATCH payload helpers
+# 8. TASK_DISPATCH payload helpers
 # ==========================================
 
 def encode_task_dispatch(start, end, target):
@@ -196,6 +245,9 @@ def encode_task_dispatch(start, end, target):
 
 def decode_task_dispatch(payload):
     """Decode start, end, and target."""
+
+    if not isinstance(payload, bytes):
+        raise TypeError("Payload must be bytes")
 
     if len(payload) != 12:
         raise ValueError("TASK_DISPATCH payload must be 12 bytes")
@@ -213,7 +265,7 @@ def decode_task_dispatch(payload):
 
 
 # ==========================================
-# 8. TASK_RESULT payload helpers
+# 9. TASK_RESULT payload helpers
 # ==========================================
 
 def encode_task_result(status, result):
@@ -227,6 +279,9 @@ def encode_task_result(status, result):
 
 def decode_task_result(payload):
     """Decode status and numeric result."""
+
+    if not isinstance(payload, bytes):
+        raise TypeError("Payload must be bytes")
 
     if len(payload) != 5:
         raise ValueError("TASK_RESULT payload must be 5 bytes")
