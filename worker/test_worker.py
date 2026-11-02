@@ -79,20 +79,30 @@ try:
 
 
     # STEP 4: Execute task
-
-    result = sum(range(start, end + 1))
-
-    print("\nTask completed!")
-    print("Computed Result:", result)
-
-
+    try:
+        target = task["target"]
+    
+        if start <= target <= end:
+            result = target
+            status = 1  # SUCCESS
+            print("\nTask completed!")
+            print("Target", target, "was found in the range.")
+        else:
+            result = 0
+            status = 2  # NOT_FOUND
+            print("\nTask completed!")
+            print("Target", target, "was NOT found in the range.")
+    
+    except (KeyError, TypeError, ValueError) as error:
+        result = 0
+        status = 3  # ERROR
+        print("\nTask execution failed:", error)
     # STEP 5: Send result to server
 
-    result_payload = protocol.encode_task_result(
-        status=1,       # SUCCESS
+        result_payload = protocol.encode_task_result(
+        status=status,
         result=result
     )
-
     result_packet = protocol.encode_message(
         message_type=protocol.TASK_RESULT,
         task_id=task_id,
