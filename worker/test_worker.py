@@ -99,7 +99,7 @@ try:
         print("\nTask execution failed:", error)
     # STEP 5: Send result to server
 
-        result_payload = protocol.encode_task_result(
+    result_payload = protocol.encode_task_result(
         status=status,
         result=result
     )
