@@ -3,8 +3,8 @@ import sys
 import os
 
 # Allow importing protocol.py from the project root
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+#sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "protocol"))
 import protocol
 
 from worker_manager import WorkerManager
