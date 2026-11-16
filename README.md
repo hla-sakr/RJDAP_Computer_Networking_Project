@@ -1,4 +1,3 @@
-# RJDAP_Computer_Networking_Project
 # RJDAP – Reliable Job Dispatch & Aggregation Protocol
 
 **Team 8 – Computer Networks Major Task, Fall 2026 (Project 2)**
